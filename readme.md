@@ -1,10 +1,14 @@
 ﻿# Tweet-Image-Collector
 ## 紹介
-Twitterの画像を取得するアプリケーションです。  
-Bearer Tokenだけで使えるようにしてあります。
+F#で実装されたTwitterの画像を取得するGUIアプリケーションです。
+GUIにはAvalonia-FuncUI、Twitter関連はTweetinviを使用しています。
+使用する際は、.Net5をインストール後ビルドし、アプリ内でBearer Tokenを登録してください。
+Windows10で動作を確認しています。Mac、Linuxについては未確認です(Avalonia UIが対応してる環境なら動くはず)。
 
 ## 実装済みの機能
-- Twitterへのリクエストと画像取得
+- Twitterへのリクエスト
+- 画像の取得
+- 関連データの保存(設定やクエリの履歴など)
 - Bearer Tokenの登録
 - 画像保存フォルダーパスの変更機能
 
