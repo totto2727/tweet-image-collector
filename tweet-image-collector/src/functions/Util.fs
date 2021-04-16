@@ -4,7 +4,6 @@ open System
 open System.IO
 open System.Net.Http
 open Avalonia.Controls
-open Avalonia.Controls
 open Avalonia.FuncUI.DSL
 open Avalonia.Layout
 open Microsoft.VisualBasic.FileIO
@@ -15,23 +14,54 @@ type Statics =
 
     static member rootFolderPath =
         Path.Join [|
-//            Path.GetDirectoryName(System
-//                .Diagnostics
-//                .Process
-//                .GetCurrentProcess()
-//                .MainModule.FileName)
             Environment.GetFolderPath(Environment.SpecialFolder.MyPictures)
             "tweet_images"
         |]
 
-module Util =
-    let createdAtToDatetime (created: string) =
-        created.Split([| '/'; ':'; ' ' |])
-        |> Array.map int
-        |> function
-        | [| year; month; day; hour; minute; second |] ->
-            DateTime(year, month, day, hour, minute, second)
-        | _ -> DateTime.Now
+[<CLIMutable>]
+type AppSetting =
+    { Id: int64
+      Bearer: string
+      SaveFolderPath: string }
 
-    let getSaveFilePath basePath ((tweet, media): TweetV2 * MediaV2) =
-        Path.Join(basePath, sprintf $"""{tweet.Id}-{media.MediaKey}.jpg""")
+    static member Default: AppSetting =
+        { Id = 1L
+          Bearer = ""
+          SaveFolderPath = Path.Join [| Statics.rootFolderPath |] }
+
+[<CLIMutable>]
+type QueryHistory =
+    { Id: int64
+      Query: string
+      QueryDateTime: string }
+
+    static member Default: QueryHistory =
+        { Id = 1L
+          Query = ""
+          QueryDateTime = DateTime.UtcNow.ToString("u") }
+
+[<CLIMutable>]
+type MediaInfo =
+    { TweetId: int64
+      TweetAuthorId: int64
+      CreatedAt: string
+      Id: int64
+      Prefix: int64
+      MediaUrl: string
+      IsDownloaded: bool }
+
+    static member Create((tweet, media, isDownloaded): (TweetV2 * MediaV2 * bool)): MediaInfo =
+        let mediaPrefix, mediaId =
+            media.MediaKey.Split '_'
+            |> Array.map Int64.Parse
+            |> fun x -> x.[0], x.[1]
+
+        { TweetId = Int64.Parse tweet.Id
+          TweetAuthorId = Int64.Parse tweet.AuthorId
+          CreatedAt = tweet.CreatedAt.UtcDateTime.ToString("u")
+          Id = mediaId
+          Prefix = mediaPrefix
+          MediaUrl = media.Url
+          IsDownloaded = isDownloaded }
+
+    member this.MediaKey = sprintf $"{this.Prefix}_{this.Id}"

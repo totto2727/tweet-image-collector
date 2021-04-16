@@ -22,8 +22,7 @@ type TextBoxRecord<'T> =
       TextBoxAttributes: Types.IAttr<TextBox> list option
       TextBlockAttributes: Types.IAttr<TextBlock> list option }
 
-    static member Create(label, text, msg, ?textBoxAttributes, ?textBlockAttributes)
-                         : TextBoxRecord<_> =
+    static member Create(label, text, msg, ?textBoxAttributes, ?textBlockAttributes): TextBoxRecord<_> =
         { Label = label
           Text = text
           Msg = msg
@@ -40,14 +39,12 @@ let textBox (record: TextBoxRecord<_>) dispatch =
                     TextBlock.verticalAlignment VerticalAlignment.Center
                     TextBlock.horizontalAlignment HorizontalAlignment.Center
                     TextBlock.text record.Label
-                    if record.TextBlockAttributes.IsSome
-                    then yield! record.TextBlockAttributes.Value
+                    if record.TextBlockAttributes.IsSome then yield! record.TextBlockAttributes.Value
                 ]
                 TextBox.create [
                     TextBox.text record.Text
                     TextBox.onTextChanged (record.Msg >> dispatch)
-                    if record.TextBoxAttributes.IsSome
-                    then yield! record.TextBoxAttributes.Value
+                    if record.TextBoxAttributes.IsSome then yield! record.TextBoxAttributes.Value
                 ]
             ]
         ]

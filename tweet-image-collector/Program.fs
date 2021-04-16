@@ -9,7 +9,6 @@ open Avalonia.FuncUI
 open Avalonia.FuncUI.Elmish
 open Avalonia.FuncUI.Components.Hosts
 open tweet_image_collector.functions
-open tweet_image_collector.functions.SqlType
 open tweet_image_collector.views
 
 type App() =
@@ -28,10 +27,6 @@ type App() =
 module Program =
     [<EntryPoint>]
     let main (args: string []) =
-        Sql.initializeDBAsync ()|>Async.RunSynchronously
-        
-        printfn "Gui open"
-
         AppBuilder
             .Configure<App>()
             .UsePlatformDetect()

@@ -1,54 +1,42 @@
-﻿<Project Sdk="Microsoft.NET.Sdk">
-
-    <PropertyGroup>
-        <RootNamespace>tweet_image_collector</RootNamespace>
-        <TargetFramework>net5.0</TargetFramework>
-        <OutputType>WinExe</OutputType>
-    </PropertyGroup>
-
-    <PropertyGroup Condition=" '$(Configuration)' == 'Debug' ">
-      <DebugType>portable</DebugType>
-      <PlatformTarget>x64</PlatformTarget>
-    </PropertyGroup>
-
-    <PropertyGroup Condition=" '$(Configuration)' == 'Release' ">
-      <PlatformTarget>x64</PlatformTarget>
-    </PropertyGroup>
-    
-    <ItemGroup>
-        <EmbeddedResource Include="sqlite.sqlite3" />
-        <Compile Include="src\functions\Util.fs" />
-        <Compile Include="src\functions\SqlTypes.fs" />
-        <Compile Include="src\functions\Sql.fs" />
-        <Compile Include="src\functions\Twitter.fs" />
-        <Compile Include="src\views\Template.fs" />
-        <Compile Include="src\views\Counter.fs" />
-        <Compile Include="src\views\Setting.fs" />
-        <Compile Include="src\views\Query.fs" />
-        <Compile Include="src\views\Start.fs" />
-        <Compile Include="src\views\Shell.fs" />
-        
-        <Compile Include="Program.fs" />
-        
-        <None Include="tett.fsx" />
-    </ItemGroup>
-
-    <ItemGroup>
-        <PackageReference Include="Avalonia.Desktop" Version="0.9.7" />
-        <PackageReference Include="Dapper" Version="2.0.4" />
-        <PackageReference Include="JaggerJo.Avalonia.FuncUI" Version="0.4.0" />
-        <PackageReference Include="JaggerJo.Avalonia.FuncUI.DSL" Version="0.4.0" />
-        <PackageReference Include="JaggerJo.Avalonia.FuncUI.Elmish" Version="0.4.0" />
-        <PackageReference Include="System.Data.SQLite" Version="1.0.113.7" />
-        <PackageReference Include="TweetinviAPI" Version="5.0.3" />
-    </ItemGroup>
-
-    <ItemGroup>
-        <EmbeddedResource Remove=".template.config\**" />
-    </ItemGroup>
-
-    <ItemGroup>
-      <Content Include="key.json" />
-    </ItemGroup>
-    
+<Project Sdk="Microsoft.NET.Sdk">
+  <PropertyGroup>
+    <RootNamespace>tweet_image_collector</RootNamespace>
+    <TargetFramework>net5.0</TargetFramework>
+    <OutputType>WinExe</OutputType>
+  </PropertyGroup>
+  <PropertyGroup Condition=" '$(Configuration)' == 'Debug' ">
+    <DebugType>portable</DebugType>
+    <PlatformTarget>x64</PlatformTarget>
+  </PropertyGroup>
+  <PropertyGroup Condition=" '$(Configuration)' == 'Release' ">
+    <PlatformTarget>x64</PlatformTarget>
+  </PropertyGroup>
+  <ItemGroup>
+    <EmbeddedResource Include="sqlite.sqlite3" />
+    <Compile Include="src\functions\Util.fs" />
+    <Compile Include="src\functions\Sql.fs" />
+    <Compile Include="src\functions\Twitter.fs" />
+    <Compile Include="src\views\Template.fs" />
+    <Compile Include="src\views\Counter.fs" />
+    <Compile Include="src\views\Setting.fs" />
+    <Compile Include="src\views\Query.fs" />
+    <Compile Include="src\views\Shell.fs" />
+    <Compile Include="Program.fs" />
+    <None Include="tett.fsx" />
+  </ItemGroup>
+  <ItemGroup>
+    <PackageReference Include="Avalonia.Desktop" Version="0.9.7" />
+    <PackageReference Include="Dapper" Version="2.0.4" />
+    <PackageReference Include="JaggerJo.Avalonia.FuncUI" Version="0.4.0" />
+    <PackageReference Include="JaggerJo.Avalonia.FuncUI.DSL" Version="0.4.0" />
+    <PackageReference Include="JaggerJo.Avalonia.FuncUI.Elmish" Version="0.4.0" />
+    <PackageReference Include="System.Data.SQLite" Version="1.0.113.7" />
+    <PackageReference Include="TweetinviAPI" Version="5.0.3" />
+  </ItemGroup>
+  <ItemGroup>
+    <EmbeddedResource Remove=".template.config\**" />
+  </ItemGroup>
+  <ItemGroup>
+    <Content Include="key.json" />
+  </ItemGroup>
 </Project>

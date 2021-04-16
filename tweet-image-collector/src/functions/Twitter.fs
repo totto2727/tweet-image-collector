@@ -9,7 +9,6 @@ open Tweetinvi.Iterators
 open Tweetinvi.Models
 open Tweetinvi.Models.V2
 open Tweetinvi.Parameters
-open tweet_image_collector.functions.SqlType
 
 module Twitter =
     module Setting =
@@ -44,9 +43,7 @@ module Twitter =
             credentialStore
 
     module Request =
-        let createTweetSearchIterator (client: TwitterClient)
-                                      (parameters: V2.SearchTweetsV2Parameters)
-                                      =
+        let createTweetSearchIterator (client: TwitterClient) (parameters: V2.SearchTweetsV2Parameters) =
             client.SearchV2.GetSearchTweetsV2Iterator(parameters)
 
         let queryHasImageTweetsAsync (iterator: ITwitterRequestIterator<SearchTweetsV2Response, string>) =
@@ -76,8 +73,7 @@ module Twitter =
 
                     use fileStream = File.Create path
 
-                    do! response.CopyToAsync fileStream
-                        |> Async.AwaitTask
+                    do! response.CopyToAsync fileStream |> Async.AwaitTask
 
                     printfn "finish Download"
 
@@ -86,12 +82,14 @@ module Twitter =
 
         let downloadImagesAsync (data: (TweetV2 * MediaV2) array) =
             let getSaveFilePath basePath ((tweet, media): TweetV2 * MediaV2) =
-                Path.Join(basePath, sprintf $"""{tweet.Id}-{media.MediaKey}.jpg""")
+                Path.Join [|
+                    basePath
+                    sprintf $"""{tweet.Id}-{media.MediaKey}.jpg"""
+                |]
 
             let createDownloader basePath ((tweet, media): TweetV2 * MediaV2) =
                 async {
-                    let path =
-                        getSaveFilePath basePath (tweet, media)
+                    let path = getSaveFilePath basePath (tweet, media)
 
                     let! result = downloadImageAsync Statics.HttpClient media.Url path
                     return tweet, media, result
@@ -103,8 +101,7 @@ module Twitter =
                 Directory.CreateDirectory setting.SaveFolderPath
                 |> ignore
 
-                let downloader =
-                    createDownloader setting.SaveFolderPath
+                let downloader = createDownloader setting.SaveFolderPath
 
                 return! data |> Array.map downloader |> Async.Parallel
             }
@@ -124,4 +121,3 @@ module Twitter =
 
                 return! queryHasImageTweetsAsync iterator
             }
-        
