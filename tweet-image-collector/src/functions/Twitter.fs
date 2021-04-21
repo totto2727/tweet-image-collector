@@ -4,6 +4,7 @@ open System
 open System.IO
 open System.Net.Http
 open System.Net.Http.Headers
+open SharpDX.Win32
 open Tweetinvi
 open Tweetinvi.Iterators
 open Tweetinvi.Models
@@ -96,28 +97,34 @@ module Twitter =
                 }
 
             async {
-                let! setting = Sql.getSettingFirstAsync ()
+                match! Sql.getSettingFirstAsync () with
+                | Ok setting ->
+                    Directory.CreateDirectory setting.SaveFolderPath
+                    |> ignore
 
-                Directory.CreateDirectory setting.SaveFolderPath
-                |> ignore
+                    let downloader = createDownloader setting.SaveFolderPath
 
-                let downloader = createDownloader setting.SaveFolderPath
-
-                return! data |> Array.map downloader |> Async.Parallel
+                    return! data |> Array.map downloader |> Async.Parallel
+                | Error errorCode ->
+                    printfn "%d" errorCode
+                    return [||]
             }
 
         let queryTweetAsync (query: string) =
             async {
-                let! setting = Sql.getSettingFirstAsync ()
+                match! Sql.getSettingFirstAsync () with
+                | Ok setting ->
+                    let credentialStore =
+                        Setting.createCredentialStore setting.Bearer
 
-                let credentialStore =
-                    Setting.createCredentialStore setting.Bearer
+                    let client = TwitterClient(credentialStore)
+                    let parameters = Setting.createParameters query
 
-                let client = TwitterClient(credentialStore)
-                let parameters = Setting.createParameters query
+                    let iterator =
+                        createTweetSearchIterator client parameters
 
-                let iterator =
-                    createTweetSearchIterator client parameters
-
-                return! queryHasImageTweetsAsync iterator
+                    return! queryHasImageTweetsAsync iterator
+                | Error errorCode ->
+                    printfn "%d" errorCode
+                    return [||]
             }

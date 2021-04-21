@@ -22,7 +22,6 @@
     <Compile Include="src\views\Query.fs" />
     <Compile Include="src\views\Shell.fs" />
     <Compile Include="Program.fs" />
-    <None Include="tett.fsx" />
   </ItemGroup>
   <ItemGroup>
     <PackageReference Include="Avalonia.Desktop" Version="0.9.7" />
@@ -30,7 +29,7 @@
     <PackageReference Include="JaggerJo.Avalonia.FuncUI" Version="0.4.0" />
     <PackageReference Include="JaggerJo.Avalonia.FuncUI.DSL" Version="0.4.0" />
     <PackageReference Include="JaggerJo.Avalonia.FuncUI.Elmish" Version="0.4.0" />
-    <PackageReference Include="System.Data.SQLite" Version="1.0.113.7" />
+    <PackageReference Include="Microsoft.Data.Sqlite" Version="5.0.5" />
     <PackageReference Include="TweetinviAPI" Version="5.0.3" />
   </ItemGroup>
   <ItemGroup>

@@ -4,7 +4,7 @@ open System
 open System.Diagnostics
 open System.Reflection
 open System.Data
-open System.Data.SQLite
+open Microsoft.Data.Sqlite
 open Avalonia
 open Avalonia.Controls.ApplicationLifetimes
 open Tweetinvi.Models
@@ -27,77 +27,75 @@ let databaseFileFullPath =
     |]
 
 let connectionString =
-    SQLiteConnectionStringBuilder
-        (DataSource =
-            Path.Join [|
-                databaseSaveFolder
-                @"sqlite.sqlite3"
-            |])
+    let builder=SqliteConnectionStringBuilder()
+    builder.DataSource<-databaseFileFullPath
+    builder.Mode<-SqliteOpenMode.ReadWriteCreate
+    builder.ConnectionString
 
 let queryAsync<'T> (sql: string) =
     async {
         use connection =
-            new SQLiteConnection(connectionString.ToString())
+            new SqliteConnection(connectionString)
 
-        do! connection.OpenAsync() |> Async.AwaitTask
+        try
+            do! connection.OpenAsync() |> Async.AwaitTask
 
-        printfn $"query {sql}"
+            let! result =
+                sql
+                |> connection.QueryAsync<'T>
+                |> Async.AwaitTask
 
-        let! result =
-            sql
-            |> connection.QueryAsync<'T>
-            |> Async.AwaitTask
+            do! connection.CloseAsync() |> Async.AwaitTask
 
-        printfn $"finish {sql}"
+            return Ok <| Array.ofSeq result
 
-        do! connection.CloseAsync() |> Async.AwaitTask
-
-        return Array.ofSeq result
+        with
+        | :? SqliteException as ex -> return Error ex.ErrorCode
     }
 
 let querySingleAsync<'T> (sql: string) =
     async {
-        use connection =
-            new SQLiteConnection(connectionString.ToString())
+        try
+            use connection =
+                new SqliteConnection(connectionString)
 
-        do! connection.OpenAsync() |> Async.AwaitTask
+            do! connection.OpenAsync() |> Async.AwaitTask
 
-        printfn $"query {sql}"
+            let! result =
+                sql
+                |> connection.QueryFirstAsync<'T>
+                |> Async.AwaitTask
 
-        let! result =
-            sql
-            |> connection.QueryFirstAsync<'T>
-            |> Async.AwaitTask
+            do! connection.CloseAsync() |> Async.AwaitTask
 
-        printfn $"finish {sql}"
-
-        do! connection.CloseAsync() |> Async.AwaitTask
-
-        return result
+            return Ok result
+            
+        with
+        | :? SqliteException as ex->return Error ex.ErrorCode
     }
 
 let executeAsync sql data =
     async {
-        use connection =
-            new SQLiteConnection(connectionString.ToString())
+        try
+            use connection =
+                new SqliteConnection(connectionString)
 
-        do! connection.OpenAsync() |> Async.AwaitTask
+            do! connection.OpenAsync() |> Async.AwaitTask
 
-        printfn "%s" sql
+            for x in data do
+                printfn "%s" <| x.ToString()
 
-        for x in data do
-            printfn "%s" <| x.ToString()
+            let! times =
+                (sql, data)
+                |> fun (x, y) -> connection.ExecuteAsync(x, param = y)
+                |> Async.AwaitTask
 
-        let! times =
-            (sql, data)
-            |> fun (x, y) -> connection.ExecuteAsync(x, param = y)
-            |> Async.AwaitTask
+            do! connection.CloseAsync() |> Async.AwaitTask
 
-        printfn $"Execute {times}"
-
-        do! connection.CloseAsync() |> Async.AwaitTask
-
-        return times
+            return Ok times
+        
+        with
+        | :? SqliteException as ex->return Error ex.ErrorCode 
     }
 
 let executeSingleAsync sql data = executeAsync sql ([ data ])
@@ -137,7 +135,7 @@ insert or ignore into QueryHistory(Query,QueryDateTime) values (@Query,@QueryDat
     <| data
 
 let getLatestQueryHistoryAsync () =
-    querySingleAsync<{| Query: string |}> @"
+    querySingleAsync<string> @"
 select Query from QueryHistory order by Id desc limit 1;"
 
 let getMediaInfoAsync () =
@@ -177,12 +175,7 @@ let initializeDBFileAsync () =
         with
             | :? UnauthorizedAccessException ->
                 printfn "書き込めません"
-                //Environment.Exit(-1)
-
-                use lifeTime =
-                    new ClassicDesktopStyleApplicationLifetime()
-
-                lifeTime.MainWindow.Close()
+                Environment.Exit(-1)
             | :? PathTooLongException -> printfn "パスが長すぎます"
             | :? DirectoryNotFoundException -> printfn "パスが不正です"
     }
@@ -239,5 +232,4 @@ create table if not exists QueryHistory
             |> Async.Ignore
 
         printfn "finish Check"
-        do! Async.Sleep 10000
     }

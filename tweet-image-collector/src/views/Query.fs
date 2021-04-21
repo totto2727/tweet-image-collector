@@ -31,8 +31,9 @@ let init: State * Cmd<_> =
       IsEnableQueryButton = true },
     Cmd.OfAsyncImmediate.perform (fun () ->
         async {
-            let! lastQuery = Sql.getLatestQueryHistoryAsync ()
-            return lastQuery.Query
+            match! Sql.getLatestQueryHistoryAsync () with
+            |Ok lastQuery-> return lastQuery
+            |Error errorCode ->return ""
         }) () QueryUpdate
 
 let StartQueryCmd (state: State) =
@@ -107,6 +108,6 @@ type Host() as this =
     do
         let startFn () = init
 
-        Elmish.Program.mkProgram startFn update view
+        Program.mkProgram startFn update view
         |> Program.withHost this
         |> Program.run

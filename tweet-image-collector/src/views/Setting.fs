@@ -28,7 +28,10 @@ let init: State * Cmd<_> =
             SaveFolderPath = ""
             Id = 0L }
       IsEnableUpdateButton = true },
-    Cmd.OfAsyncImmediate.perform Sql.getSettingFirstAsync () UpdateSetting
+    Cmd.OfAsyncImmediate.perform Sql.getSettingFirstAsync ()
+    <| function
+    | Ok setting -> UpdateSetting setting
+    | Error errorCode -> NoChange
 
 let update (msg: Msg) (state: State) =
     match msg with
@@ -90,6 +93,6 @@ type Host() as this =
     do
         let startFn () = init
 
-        Elmish.Program.mkProgram startFn update view
+        Program.mkProgram startFn update view
         |> Program.withHost this
         |> Program.run
