@@ -27,15 +27,14 @@ let databaseFileFullPath =
     |]
 
 let connectionString =
-    let builder=SqliteConnectionStringBuilder()
-    builder.DataSource<-databaseFileFullPath
-    builder.Mode<-SqliteOpenMode.ReadWriteCreate
+    let builder = SqliteConnectionStringBuilder()
+    builder.DataSource <- databaseFileFullPath
+    builder.Mode <- SqliteOpenMode.ReadWriteCreate
     builder.ConnectionString
 
 let queryAsync<'T> (sql: string) =
     async {
-        use connection =
-            new SqliteConnection(connectionString)
+        use connection = new SqliteConnection(connectionString)
 
         try
             do! connection.OpenAsync() |> Async.AwaitTask
@@ -49,15 +48,13 @@ let queryAsync<'T> (sql: string) =
 
             return Ok <| Array.ofSeq result
 
-        with
-        | :? SqliteException as ex -> return Error ex.ErrorCode
+        with :? SqliteException as ex -> return Error ex.ErrorCode
     }
 
 let querySingleAsync<'T> (sql: string) =
     async {
         try
-            use connection =
-                new SqliteConnection(connectionString)
+            use connection = new SqliteConnection(connectionString)
 
             do! connection.OpenAsync() |> Async.AwaitTask
 
@@ -69,16 +66,14 @@ let querySingleAsync<'T> (sql: string) =
             do! connection.CloseAsync() |> Async.AwaitTask
 
             return Ok result
-            
-        with
-        | :? SqliteException as ex->return Error ex.ErrorCode
+
+        with :? SqliteException as ex -> return Error ex.ErrorCode
     }
 
 let executeAsync sql data =
     async {
         try
-            use connection =
-                new SqliteConnection(connectionString)
+            use connection = new SqliteConnection(connectionString)
 
             do! connection.OpenAsync() |> Async.AwaitTask
 
@@ -93,66 +88,77 @@ let executeAsync sql data =
             do! connection.CloseAsync() |> Async.AwaitTask
 
             return Ok times
-        
-        with
-        | :? SqliteException as ex->return Error ex.ErrorCode 
+
+        with :? SqliteException as ex -> return Error ex.ErrorCode
     }
 
 let executeSingleAsync sql data = executeAsync sql ([ data ])
 
 let upsertMediaInfoAsync (data: (V2.TweetV2 * V2.MediaV2 * bool) array) =
-    executeAsync @"
+    executeAsync
+        @"
 insert into MediaInfo values
 ( @Id, @Prefix, @MediaUrl, @TweetId, @TweetAuthorId, @CreatedAt, @IsDownloaded)
 on conflict (Id) do update set IsDownloaded=@IsDownloaded;"
     <| Array.map MediaInfo.Create data
 
 let getLatestCreatedAtAsync () =
-    querySingleAsync<{| CreatedAt: string |}> @"
+    querySingleAsync<{| CreatedAt: string |}>
+        @"
 select CreatedAt from MediaInfo order by MediaKey desc limit 1;"
 
 let getOldestCreatedAtAsync () =
-    querySingleAsync<{| CreatedAt: string |}> @"
+    querySingleAsync<{| CreatedAt: string |}>
+        @"
 select CreatedAt from MediaInfo order by MediaKey asc limit 1;"
 
 let getSettingFirstAsync () =
-    querySingleAsync<AppSetting> @"
+    querySingleAsync<AppSetting>
+        @"
 select * from Setting order by Id desc limit 1;"
 
 let insertSettingSingleAsync (data: AppSetting) =
-    executeSingleAsync @"
+    executeSingleAsync
+        @"
 insert or ignore into Setting(Bearer,SaveFolderPath) values (@Bearer,@SaveFolderPath);"
     <| data
 
 let updateSettingAsync (data: AppSetting) =
-    executeSingleAsync @"
+    executeSingleAsync
+        @"
 update Setting set Bearer=@Bearer,SaveFolderPath=@SaveFolderPath where Id=@Id;"
     <| data
 
 let insertQueryHistorySingleAsync (data: QueryHistory) =
-    executeSingleAsync @"
+    executeSingleAsync
+        @"
 insert or ignore into QueryHistory(Query,QueryDateTime) values (@Query,@QueryDateTime);"
     <| data
 
 let getLatestQueryHistoryAsync () =
-    querySingleAsync<string> @"
+    querySingleAsync<string>
+        @"
 select Query from QueryHistory order by Id desc limit 1;"
 
 let getMediaInfoAsync () =
-    queryAsync<MediaInfo> @"
+    queryAsync<MediaInfo>
+        @"
 select * from MediaInfo order by Id desc limit 100;"
+
+type InitializeError =
+    | UnauthorizedAccess
+    | PathTooLong
+    | DirectoryNotFound
+    | AlreadyFileExisted
+    | UnauthorizedArgument
+    | ArgumentNull
+    | NotSupported
 
 let initializeDBFileAsync () =
     async {
         try
-            printfn "check directory"
-
             Directory.CreateDirectory(databaseSaveFolder)
             |> ignore
-
-            printfn "finish check directory"
-
-            printfn "check file"
 
             if not <| File.Exists databaseFileFullPath then
                 use newFs = File.Create(databaseFileFullPath)
@@ -165,19 +171,17 @@ let initializeDBFileAsync () =
                 use databaseFs =
                     assembly.GetManifestResourceStream(assemblyDBFileName)
 
-                printfn "create file"
-
                 do! databaseFs.CopyToAsync newFs |> Async.AwaitTask
 
-                printfn "finish create file"
-
-            printfn "finish check file"
+            return Ok()
         with
-            | :? UnauthorizedAccessException ->
-                printfn "書き込めません"
-                Environment.Exit(-1)
-            | :? PathTooLongException -> printfn "パスが長すぎます"
-            | :? DirectoryNotFoundException -> printfn "パスが不正です"
+            | :? UnauthorizedAccessException -> return Error UnauthorizedAccess
+            | :? PathTooLongException -> return Error PathTooLong
+            | :? DirectoryNotFoundException -> return Error DirectoryNotFound
+            | :? IOException -> return Error AlreadyFileExisted
+            | :? ArgumentNullException -> return Error ArgumentNull
+            | :? ArgumentException -> return Error UnauthorizedArgument
+            | :? NotSupportedException -> return Error NotSupported
     }
 
 let initializeDBAsync () =
@@ -216,20 +220,28 @@ create table if not exists QueryHistory
     async {
         printfn "start Check"
 
-        do! initializeDBFileAsync ()
+        match! initializeDBFileAsync () with
+        | Ok _ ->
 
-        do! createSqlArray
-            |> Array.Parallel.map (fun x -> executeSingleAsync x 0)
-            |> Async.Parallel
-            |> Async.Ignore
+            do!
+                createSqlArray
+                |> Array.Parallel.map (fun x -> executeSingleAsync x 0)
+                |> Async.Parallel
+                |> Async.Ignore
 
-        do! executeSingleAsync "insert or ignore into Setting values (@Id,@Bearer,@SaveFolderPath);" AppSetting.Default
-            |> Async.Ignore
+            do!
+                executeSingleAsync
+                    "insert or ignore into Setting values (@Id,@Bearer,@SaveFolderPath);"
+                    AppSetting.Default
+                |> Async.Ignore
 
-        do! executeSingleAsync
-                "insert or ignore into QueryHistory values (@Id,@Query,@QueryDateTime);"
-                QueryHistory.Default
-            |> Async.Ignore
+            do!
+                executeSingleAsync
+                    "insert or ignore into QueryHistory values (@Id,@Query,@QueryDateTime);"
+                    QueryHistory.Default
+                |> Async.Ignore
 
-        printfn "finish Check"
+            return Ok()
+
+        | Error _ as ex -> return Error ex
     }
